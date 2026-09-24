@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<title>Produk & Stok - Kasir & Manajemen Usaha</title>
+<link rel="stylesheet" href="../css/app.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <div id="sidebar-container"></div>
+    <main class="main">
+      <div class="main-inner">
+        <div id="header-container"></div>
+
+        <div class="card">
+          <div class="flex justify-between items-center flex-wrap gap-3 mb-3">
+            <div class="flex items-center gap-3 flex-wrap" style="flex:1;">
+              <div class="input-icon-wrap" style="min-width:220px;">
+                <span class="icon" data-icon="search" data-icon-size="16"></span>
+                <input class="input" id="search-product" placeholder="Cari produk..." />
+              </div>
+              <div class="btn-pill-group" id="category-filter">
+                <button class="btn-pill active" data-cat="semua">Semua</button>
+                <button class="btn-pill" data-cat="beras">Beras</button>
+                <button class="btn-pill" data-cat="telur">Telur</button>
+                <button class="btn-pill" data-cat="gas">Gas</button>
+              </div>
+            </div>
+            <button class="btn btn-primary" id="btn-add-product">+ Tambah Produk</button>
+          </div>
+
+          <div class="table-wrap">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Nama Produk</th>
+                  <th>Kategori</th>
+                  <th>Harga Beli</th>
+                  <th>Harga Jual</th>
+                  <th>Stok</th>
+                  <th>Status</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="product-table-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="../js/common.js"></script>
+  <script src="../js/products.js"></script>
+</body>
+</html>

@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<title>Dashboard - Kasir & Manajemen Usaha</title>
+<link rel="stylesheet" href="../css/app.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <div id="sidebar-container"></div>
+    <main class="main">
+      <div class="main-inner">
+        <div id="header-container"></div>
+
+        <!-- KEUANGAN -->
+        <div class="grid grid-4 mb-4">
+          <div class="card stat-card">
+            <div class="top-row">
+              <div class="label">Pendapatan Hari Ini</div>
+              <div class="icon-badge icon-bg-green" data-icon="trendingUp"></div>
+            </div>
+            <div class="value text-green" id="stat-income-today">Rp 0</div>
+            <div class="foot" id="stat-txn-today">0 transaksi</div>
+          </div>
+          <div class="card stat-card">
+            <div class="top-row">
+              <div class="label">Pendapatan Bulan Ini</div>
+              <div class="icon-badge icon-bg-blue" data-icon="wallet"></div>
+            </div>
+            <div class="value text-blue" id="stat-income-month">Rp 0</div>
+            <div class="foot" id="stat-month-label">-</div>
+          </div>
+          <div class="card stat-card">
+            <div class="top-row">
+              <div class="label">Total Pengeluaran</div>
+              <div class="icon-badge icon-bg-amber" data-icon="trendingDown"></div>
+            </div>
+            <div class="value text-amber" id="stat-expense">Rp 0</div>
+            <div class="foot">Bulan ini</div>
+          </div>
+          <div class="card stat-card">
+            <div class="top-row">
+              <div class="label">Laba Bersih</div>
+              <div class="icon-badge icon-bg-purple" data-icon="barChart"></div>
+            </div>
+            <div class="value" id="stat-profit" style="color:var(--purple-600)">Rp 0</div>
+            <div class="foot">Pendapatan &minus; Pengeluaran</div>
+          </div>
+        </div>
+
+        <!-- TRANSAKSI & STOK -->
+        <div class="grid grid-4 mb-4">
+          <div class="card stat-card">
+            <div class="top-row"><div class="label">Transaksi Hari Ini</div><div class="icon-badge icon-bg-green" data-icon="cart"></div></div>
+            <div class="value" id="stat-txn-count">0</div>
+          </div>
+          <div class="card stat-card">
+            <div class="top-row"><div class="label">Barang Terjual</div><div class="icon-badge icon-bg-blue" data-icon="package"></div></div>
+            <div class="value" id="stat-items-sold">0</div>
+          </div>
+          <div class="card stat-card">
+            <div class="top-row"><div class="label">Produk Terlaris</div><div class="icon-badge icon-bg-amber" data-icon="star"></div></div>
+            <div class="value text-lg" id="stat-best-product">-</div>
+          </div>
+          <div class="card stat-card">
+            <div class="top-row"><div class="label">Total Stok Beras / Telur</div><div class="icon-badge icon-bg-green"></div></div>
+            <div class="value text-lg"><span id="stat-stock-beras">0</span> kg <span class="text-muted text-sm">/ </span><span id="stat-stock-telur">0</span> kg</div>
+          </div>
+        </div>
+
+        <!-- CHARTS -->
+        <div class="grid grid-2 mb-4">
+          <div class="card">
+            <div class="flex justify-between items-center mb-2">
+              <div>
+                <div class="section-title">Pendapatan Harian (7 hari terakhir)</div>
+                <div class="section-sub">Pendapatan vs Pengeluaran</div>
+              </div>
+            </div>
+            <div class="chart-box"><canvas id="chart-daily"></canvas></div>
+          </div>
+          <div class="card">
+            <div class="section-title mb-2">Penjualan Produk</div>
+            <div class="section-sub mb-2">Bulan ini</div>
+            <div class="chart-box"><canvas id="chart-products"></canvas></div>
+          </div>
+        </div>
+
+        <div class="grid grid-2">
+          <div class="card">
+            <div class="section-title mb-2">Pendapatan Bulanan <span id="chart-year"></span></div>
+            <div class="chart-box tall"><canvas id="chart-monthly"></canvas></div>
+          </div>
+          <div class="card">
+            <div class="section-title mb-3">Ringkasan Stok Gas</div>
+            <div class="flex flex-col gap-3">
+              <div class="flex justify-between items-center">
+                <span class="text-sm text-muted flex items-center gap-2"><span data-icon="flame" data-icon-size="15" style="color:var(--red-600)"></span> Total Gas Isi</span>
+                <span class="font-bold text-lg" id="stat-gas-filled">0 Tabung</span>
+              </div>
+              <div class="flex justify-between items-center">
+                <span class="text-sm text-muted flex items-center gap-2"><span data-icon="circle" data-icon-size="15"></span> Total Gas Kosong</span>
+                <span class="font-bold text-lg" id="stat-gas-empty">0 Tabung</span>
+              </div>
+              <div class="flex justify-between items-center" style="border-top:1px solid var(--border); padding-top:12px;">
+                <span class="text-sm font-semibold flex items-center gap-2"><span data-icon="package" data-icon-size="15" style="color:var(--green-700)"></span> Total Tabung</span>
+                <span class="font-bold text-xl text-green" id="stat-gas-total">0 Tabung</span>
+              </div>
+            </div>
+            <a href="gas.html" class="btn btn-outline btn-block mt-4">Kelola Gas &rarr;</a>
+          </div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <script src="../../node_modules/chart.js/dist/chart.umd.js"></script>
+  <script src="../js/common.js"></script>
+  <script src="../js/dashboard.js"></script>
+</body>
+</html>

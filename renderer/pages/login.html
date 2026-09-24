@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<title>Masuk - Kasir & Manajemen Usaha</title>
+<link rel="stylesheet" href="../css/app.css" />
+</head>
+<body>
+  <div class="login-wrap">
+    <div class="login-card">
+      <div class="login-logo" data-icon="home" data-icon-size="26"></div>
+      <h1 class="text-xl font-bold text-center">Kasir &amp; Manajemen Usaha</h1>
+      <p class="text-sm text-muted text-center mt-1">Masuk untuk mengelola toko Anda</p>
+
+      <form id="login-form" class="mt-6">
+        <div class="form-group">
+          <label>Username</label>
+          <input class="input" id="username" placeholder="admin" autocomplete="username" required />
+        </div>
+        <div class="form-group">
+          <label>Password</label>
+          <input class="input" id="password" type="password" placeholder="••••••••" autocomplete="current-password" required />
+        </div>
+        <div id="login-error" class="text-sm text-red hidden mt-1 mb-2"></div>
+        <button type="submit" class="btn btn-primary btn-block mt-2" id="btn-submit">Masuk</button>
+      </form>
+
+      <div class="mt-4 text-xs text-soft text-center">
+        Demo &mdash; admin / admin123 &nbsp;&bull;&nbsp; kasir / kasir123
+      </div>
+    </div>
+  </div>
+
+  <script src="../js/common.js"></script>
+  <script>
+    hydrateIcons();
+
+    const existing = currentUser();
+    if (existing) window.location.href = 'dashboard.html';
+
+    document.getElementById('login-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const username = document.getElementById('username').value.trim();
+      const password = document.getElementById('password').value;
+      const errEl = document.getElementById('login-error');
+      const btn = document.getElementById('btn-submit');
+      errEl.classList.add('hidden');
+      btn.disabled = true;
+      btn.textContent = 'Memproses...';
+
+      const res = await window.api.auth.login(username, password);
+      btn.disabled = false;
+      btn.textContent = 'Masuk';
+
+      if (!res.ok || !res.data.success) {
+        errEl.textContent = (res.data && res.data.message) || res.error || 'Login gagal';
+        errEl.classList.remove('hidden');
+        return;
+      }
+      sessionStorage.setItem('currentUser', JSON.stringify(res.data.user));
+      window.location.href = 'dashboard.html';
+    });
+  </script>
+</body>
+</html>

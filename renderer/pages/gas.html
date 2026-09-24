@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<title>Manajemen Gas - Kasir & Manajemen Usaha</title>
+<link rel="stylesheet" href="../css/app.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <div id="sidebar-container"></div>
+    <main class="main">
+      <div class="main-inner">
+        <div id="header-container"></div>
+
+        <div class="flex items-center gap-2 mb-4" id="gas-tabs"></div>
+
+        <div class="grid grid-3 mb-4">
+          <div class="card stat-card">
+            <div class="top-row">
+              <div class="label">GAS ISI</div>
+              <div class="icon-badge icon-bg-red" data-icon="flame"></div>
+            </div>
+            <div class="value text-red" id="stat-filled">0</div>
+            <div class="foot">Tabung tersedia</div>
+            <div class="progress-track mt-1"><div class="progress-fill" id="bar-filled" style="background:var(--red-600)"></div></div>
+            <div class="text-xs text-soft" id="pct-filled">0% dari total</div>
+          </div>
+          <div class="card stat-card">
+            <div class="top-row">
+              <div class="label">GAS KOSONG</div>
+              <div class="icon-badge" style="background:#f1f3f7;color:var(--text-muted);" data-icon="circle"></div>
+            </div>
+            <div class="value" id="stat-empty">0</div>
+            <div class="foot">Tabung kosong di toko</div>
+            <div class="progress-track mt-1"><div class="progress-fill" id="bar-empty" style="background:#9aa3b2"></div></div>
+            <div class="text-xs text-soft" id="pct-empty">0% dari total</div>
+          </div>
+          <div class="card stat-card">
+            <div class="top-row">
+              <div class="label">TOTAL TABUNG</div>
+              <div class="icon-badge icon-bg-green" data-icon="package"></div>
+            </div>
+            <div class="value" id="stat-total">0</div>
+            <div class="foot">Tabung (isi + kosong)</div>
+            <button class="btn btn-primary btn-block mt-2" id="btn-agen">+ Tukar dengan Agen</button>
+          </div>
+        </div>
+
+        <div class="card mb-4">
+          <div class="section-title mb-3">Aksi Cepat</div>
+          <div class="flex gap-2 flex-wrap">
+            <button class="btn btn-secondary" id="btn-tukar-customer" data-icon="refreshSwap"><span>Transaksi Tukar Customer</span></button>
+            <button class="btn btn-secondary" id="btn-tanpa-tukar" data-icon="banknote"><span>Penjualan Tanpa Tukar</span></button>
+            <button class="btn btn-secondary" id="btn-tabung-baru" data-icon="plusCircle"><span>Tambah Tabung Baru</span></button>
+            <button class="btn btn-secondary" id="btn-penyesuaian" data-icon="sliders"><span>Penyesuaian Stok</span></button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="section-title mb-3">Riwayat Aktivitas Gas</div>
+          <div class="table-wrap">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Tanggal</th>
+                  <th>Jenis Transaksi</th>
+                  <th>Isi Sebelum</th>
+                  <th>Kosong Sebelum</th>
+                  <th>Perubahan</th>
+                  <th>Isi Sesudah</th>
+                  <th>Kosong Sesudah</th>
+                  <th>Keterangan</th>
+                </tr>
+              </thead>
+              <tbody id="history-body"></tbody>
+            </table>
+          </div>
+          <div class="pagination" id="history-pagination"></div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="../js/common.js"></script>
+  <script src="../js/gas.js"></script>
+</body>
+</html>

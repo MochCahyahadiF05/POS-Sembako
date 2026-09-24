@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<title>Keuangan - Kasir & Manajemen Usaha</title>
+<link rel="stylesheet" href="../css/app.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <div id="sidebar-container"></div>
+    <main class="main">
+      <div class="main-inner">
+        <div id="header-container"></div>
+
+        <div class="flex justify-between items-center flex-wrap gap-3 mb-4">
+          <div class="btn-pill-group" id="period-filter">
+            <button class="btn-pill active" data-period="today">Hari Ini</button>
+            <button class="btn-pill" data-period="week">Minggu Ini</button>
+            <button class="btn-pill" data-period="month">Bulan Ini</button>
+            <button class="btn-pill" data-period="year">Tahun Ini</button>
+          </div>
+          <div class="flex gap-2">
+            <button class="btn btn-secondary" id="btn-add-income">+ Pendapatan Lain</button>
+            <button class="btn btn-primary" id="btn-add-expense">+ Catat Pengeluaran</button>
+          </div>
+        </div>
+
+        <div class="grid grid-3 mb-4">
+          <div class="card stat-card">
+            <div class="top-row"><div class="label">Total Pendapatan</div><div class="icon-badge icon-bg-green" data-icon="trendingUp"></div></div>
+            <div class="value text-green" id="stat-income">Rp 0</div>
+          </div>
+          <div class="card stat-card">
+            <div class="top-row"><div class="label">Total Pengeluaran</div><div class="icon-badge icon-bg-amber" data-icon="banknote"></div></div>
+            <div class="value text-amber" id="stat-expense">Rp 0</div>
+          </div>
+          <div class="card stat-card">
+            <div class="top-row"><div class="label">Laba Bersih</div><div class="icon-badge icon-bg-purple" data-icon="barChart"></div></div>
+            <div class="value" id="stat-profit" style="color:var(--purple-600)">Rp 0</div>
+          </div>
+        </div>
+
+        <div class="grid grid-2 mb-4">
+          <div class="card">
+            <div class="section-title mb-2">Pendapatan per Kategori</div>
+            <div id="income-breakdown" class="flex flex-col gap-2"></div>
+          </div>
+          <div class="card">
+            <div class="section-title mb-2">Pengeluaran per Kategori</div>
+            <div id="expense-breakdown" class="flex flex-col gap-2"></div>
+          </div>
+        </div>
+
+        <div class="card mb-4">
+          <div class="flex justify-between items-center mb-3">
+            <div>
+              <div class="section-title">Riwayat Pendapatan</div>
+              <div class="section-sub">Penjualan dari kasir dan pendapatan lainnya</div>
+            </div>
+            <div class="text-sm text-muted">Total: <span class="font-semibold text-green" id="income-total-inline">Rp 0</span></div>
+          </div>
+          <div class="table-wrap">
+            <table class="table">
+              <thead>
+                <tr><th>Tanggal</th><th>Sumber</th><th>Referensi</th><th>Keterangan</th><th>Metode</th><th>Jumlah</th><th></th></tr>
+              </thead>
+              <tbody id="income-body"></tbody>
+            </table>
+          </div>
+          <div class="pagination" id="income-pagination"></div>
+        </div>
+
+        <div class="card">
+          <div class="section-title mb-3">Riwayat Pengeluaran</div>
+          <div class="table-wrap">
+            <table class="table">
+              <thead>
+                <tr><th>Tanggal</th><th>Kategori</th><th>Deskripsi</th><th>Jumlah</th><th></th></tr>
+              </thead>
+              <tbody id="expense-body"></tbody>
+            </table>
+          </div>
+          <div class="pagination" id="expense-pagination"></div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="../js/common.js"></script>
+  <script src="../js/finance.js"></script>
+</body>
+</html>

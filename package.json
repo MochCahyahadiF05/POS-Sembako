@@ -1,0 +1,44 @@
+{
+  "name": "kasir-usaha-desktop",
+  "productName": "Sistem Kasir & Manajemen Usaha",
+  "version": "1.2.0",
+  "description": "Aplikasi desktop kasir & manajemen usaha (Beras, Telur, Gas LPG) - Offline, Electron + SQLite",
+  "main": "main.js",
+  "author": "Toko Beras & Kebutuhan Pokok",
+  "license": "MIT",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "postinstall": "electron-rebuild -f -w better-sqlite3",
+    "dist": "electron-builder"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.3.0",
+    "chart.js": "^4.4.4",
+    "exceljs": "^4.4.0",
+    "pdfkit": "^0.15.0"
+  },
+  "devDependencies": {
+    "electron": "^31.3.1",
+    "electron-builder": "^24.13.3",
+    "@electron/rebuild": "^3.6.1"
+  },
+  "build": {
+    "appId": "com.tokousaha.kasir",
+    "productName": "Kasir & Usaha",
+    "files": [
+      "main.js",
+      "preload.js",
+      "database/**/*",
+      "renderer/**/*",
+      "assets/**/*",
+      "!database/app.db"
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "assets/icon.ico"
+    },
+    "mac": { "target": "dmg" },
+    "linux": { "target": "AppImage" }
+  }
+}
