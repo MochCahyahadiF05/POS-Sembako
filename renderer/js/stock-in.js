@@ -5,12 +5,12 @@
   if (!user) return;
 
   let products = [];
-  let rows = [], page = 1, search = '';
+  let rows = [], page = 1, search = '', activePeriod = 'today';
   const PAGE_SIZE = 20;
   const tbody = document.getElementById('table-body');
 
   async function loadTable() {
-    rows = (await callApi(window.api.stock.listIn({}))) || [];
+    rows = (await callApi(window.api.stock.listIn(getDateRange(activePeriod)))) || [];
     const filtered = rows.filter((r) => `${r.product_name} ${r.supplier || ''} ${r.note || ''}`.toLowerCase().includes(search));
     page = Math.min(page, Math.max(1, Math.ceil(filtered.length / PAGE_SIZE)));
     const visible = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
@@ -38,6 +38,19 @@
     tbody.querySelectorAll('[data-edit]').forEach((b) => b.addEventListener('click', () => openForm(rows.find((r) => r.id === Number(b.dataset.edit)))));
     tbody.querySelectorAll('[data-delete]').forEach((b) => b.addEventListener('click', () => confirmDialog('Hapus barang masuk ini?', 'Stok dan pengeluaran terkait akan dibalik.', async () => { if (await callApi(window.api.stock.deleteIn(Number(b.dataset.delete)))) { toast('Barang masuk dihapus'); loadTable(); loadProducts(); } })));
     renderPagination(filtered.length);
+  }
+
+  function getDateRange(period) {
+    const now = new Date();
+    const dateString = (date) => {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    };
+    const from = new Date(now.getFullYear(), period === 'year' ? 0 : period === 'month' ? now.getMonth() : now.getMonth(), period === 'year' || period === 'month' ? 1 : now.getDate());
+    const to = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    return { from: dateString(from), to: dateString(to) };
   }
 
   function renderPagination(total) {
@@ -138,6 +151,14 @@
     openForm();
   });
   document.getElementById('table-search').addEventListener('input', (e) => { search = e.target.value.trim().toLowerCase(); page = 1; loadTable(); });
+  document.getElementById('period-filter').addEventListener('click', (e) => {
+    const button = e.target.closest('[data-period]');
+    if (!button) return;
+    activePeriod = button.dataset.period;
+    page = 1;
+    document.querySelectorAll('#period-filter .btn-pill').forEach((item) => item.classList.toggle('active', item === button));
+    loadTable();
+  });
 
   loadProducts();
   loadTable();

@@ -9,6 +9,8 @@
   let activeCategory = 'semua';
   let searchTerm = '';
   let activeMethod = 'tunai';
+  let paymentStatus = 'lunas';
+  let customerName = '';
 
   const productGrid = document.getElementById('product-grid');
   const cartItemsEl = document.getElementById('cart-items');
@@ -251,13 +253,53 @@
     const discount = Number(document.getElementById('input-discount').value) || 0;
     const total = Math.max(0, subtotal - discount);
     const paidInput = document.getElementById('input-paid');
-    const paid = Number(paidInput.value) || 0;
+    const paid = parseAmountInput(paidInput.value);
     const change = paid - total;
 
     document.getElementById('sum-subtotal').textContent = rupiah(subtotal);
     document.getElementById('sum-total').textContent = rupiah(total);
     document.getElementById('sum-change').textContent = rupiah(Math.max(0, change));
     document.getElementById('sum-change').className = 'font-semibold ' + (change < 0 ? 'text-red' : 'text-green');
+  }
+
+  function parseAmountInput(value) {
+    return Number(String(value || '').replace(/[^0-9]/g, '')) || 0;
+  }
+
+  function formatAmountInput(input) {
+    const amount = parseAmountInput(input.value);
+    input.value = amount ? amount.toLocaleString('id-ID') : '';
+  }
+
+  async function openPaymentStatusModal() {
+    const customerNames = (await callApi(window.api.transactions.listCustomerNames(), { silent: true })) || [];
+    const overlay = openModal(`
+      <div class="modal-header"><h3>Status Pembayaran</h3><button class="modal-close" id="payment-status-close">&times;</button></div>
+      <div class="modal-body">
+        <div class="form-group"><label>Status</label><select class="input" id="payment-status-value"><option value="lunas" ${paymentStatus === 'lunas' ? 'selected' : ''}>Lunas</option><option value="belum_bayar" ${paymentStatus === 'belum_bayar' ? 'selected' : ''}>Belum Bayar</option></select></div>
+        <div class="form-group mt-2"><label>Pelanggan</label><select class="input" id="customer-name-select"><option value="__new__">Pelanggan Baru</option>${customerNames.map((name) => `<option value="${escapeHtml(name)}" ${customerName === name ? 'selected' : ''}>${escapeHtml(name)}</option>`).join('')}</select></div>
+        <div class="form-group mt-2" id="new-customer-group"><label>Nama Pelanggan Baru</label><input class="input" id="customer-name-value" value="${customerNames.includes(customerName) ? '' : escapeHtml(customerName)}" placeholder="Wajib untuk transaksi piutang" /></div>
+      </div>
+      <div class="modal-footer"><button class="btn btn-secondary" id="payment-status-cancel">Batal</button><button class="btn btn-primary" id="payment-status-save">Simpan</button></div>
+    `);
+    const customerSelect = overlay.querySelector('#customer-name-select');
+    const newCustomerGroup = overlay.querySelector('#new-customer-group');
+    const updateCustomerField = () => { newCustomerGroup.style.display = customerSelect.value === '__new__' ? '' : 'none'; };
+    customerSelect.addEventListener('change', updateCustomerField);
+    updateCustomerField();
+    const close = () => closeModal();
+    overlay.querySelector('#payment-status-close').addEventListener('click', close);
+    overlay.querySelector('#payment-status-cancel').addEventListener('click', close);
+    overlay.querySelector('#payment-status-save').addEventListener('click', () => {
+      paymentStatus = overlay.querySelector('#payment-status-value').value;
+      customerName = customerSelect.value === '__new__' ? overlay.querySelector('#customer-name-value').value.trim() : customerSelect.value;
+      if (paymentStatus === 'belum_bayar' && !customerName) {
+        toast('Nama pelanggan wajib diisi untuk transaksi piutang', 'error');
+        return;
+      }
+      document.getElementById('btn-payment-status').textContent = paymentStatus === 'belum_bayar' ? 'Belum Bayar' : 'Lunas';
+      close();
+    });
   }
 
   function escapeHtml(value) {
@@ -267,6 +309,38 @@
       .replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;')
       .replace(/'/g, '&#039;');
+  }
+
+  function buildBarcodeHtml(value) {
+    const patterns = {
+      '0': 'nnnwwnwnn', '1': 'wnnwnnnnw', '2': 'nnwwnnnnw', '3': 'wnwwnnnnn', '4': 'nnnwwnnnw',
+      '5': 'wnnwwnnnn', '6': 'nnwwwnnnn', '7': 'nnnwnnwnw', '8': 'wnnwnnwnn', '9': 'nnwwnnwnn',
+      A: 'wnnnnwnnw', B: 'nnwnnwnnw', C: 'wnwnnwnnn', D: 'nnnnwwnnw', E: 'wnnnwwnnn', F: 'nnwnwwnnn',
+      G: 'nnnnnwwnw', H: 'wnnnnwwnn', I: 'nnwnnwwnn', J: 'nnnnwwwnn', K: 'wnnnnnnww', L: 'nnwnnnnww',
+      M: 'wnwnnnnwn', N: 'nnnnwnnww', O: 'wnnnwnnwn', P: 'nnwnwnnwn', Q: 'nnnnnnwwn', R: 'wnnnnnwwn',
+      S: 'nnwnnnwwn', T: 'nnnnwnwwn', U: 'wwnnnnnnw', V: 'nwwnnnnnw', W: 'wwwnnnnnn', X: 'nwnnwnnnw',
+      Y: 'wwnnwnnnn', Z: 'nwwnwnnnn', '-': 'nwnnnnwnw', '.': 'wwnnnnwnn', ' ': 'nwwnnnwnn',
+      '$': 'nwnwnwnnn', '/': 'nwnwnnnwn', '+': 'nwnnnwnwn', '%': 'nnnwnwnwn', '*': 'nwnnwnwnn'
+    };
+    const encoded = `*${String(value || '').toUpperCase()}*`;
+    const bars = [];
+    for (const character of encoded) {
+      const pattern = patterns[character] || patterns['-'];
+      pattern.split('').forEach((size, index) => {
+        const isBar = index % 2 === 0;
+        bars.push(`<i class="barcode-segment ${isBar ? 'barcode-bar' : 'barcode-space'} ${size === 'w' ? 'wide' : ''}"></i>`);
+      });
+      if (character !== encoded[encoded.length - 1]) bars.push('<i class="barcode-gap"></i>');
+    }
+    return `<div class="receipt-barcode"><div class="barcode-bars">${bars.join('')}</div><div class="barcode-value">${escapeHtml(value)}</div></div>`;
+  }
+
+  function buildQrCodeHtml(value) {
+    if (window.ZXingBrowser && window.ZXingBrowser.BrowserQRCodeSvgWriter) {
+      const svg = new window.ZXingBrowser.BrowserQRCodeSvgWriter().write(String(value || ''), 90, 90);
+      return `<div class="receipt-qrcode">${svg.outerHTML}<div class="barcode-value">${escapeHtml(value)}</div></div>`;
+    }
+    return buildBarcodeHtml(value);
   }
 
   function buildReceiptHtml(transaction, store) {
@@ -285,12 +359,13 @@
       .muted { color: #555; font-size: 10px; } .line { border-top: 1px dashed #555; margin: 7px 0; }
       .item, .row { display: flex; justify-content: space-between; gap: 8px; margin: 4px 0; } .item span { color: #555; font-size: 10px; }
       .item strong, .row strong { white-space: nowrap; } .total { font-size: 13px; font-weight: bold; }
+      .receipt-barcode { margin: 7px 0 0; text-align: center; } .barcode-bars { display: flex; justify-content: center; align-items: stretch; height: 22px; margin: 0 10px; } .barcode-segment { display: block; flex: 0 0 1px; width: 1px; } .barcode-bar { background: #111; } .barcode-space { background: transparent; } .barcode-segment.wide { flex-basis: 3px; width: 3px; } .barcode-gap { flex: 0 0 1px; width: 1px; } .receipt-qrcode { margin: 7px 0 0; text-align: center; } .receipt-qrcode svg { width: 20mm; height: 20mm; } .barcode-value { font-size: 8px; letter-spacing: 1px; margin-top: 2px; }
       .footer { margin-top: 9px; text-align: center; white-space: pre-line; }
     </style></head><body>
       <h1>${escapeHtml(store.store_name || 'Toko')}</h1><p>${escapeHtml(store.address || '')}</p><p>${escapeHtml(store.phone || '')}</p>
       <div class="line"></div><p class="muted">${escapeHtml(transaction.invoice_number)} | ${escapeHtml(fmtDateTime(transaction.transaction_date))}</p><div class="line"></div>
       ${items}<div class="line"><div class="row"><span>Subtotal</span><span>${rupiah(transaction.total_amount)}</span></div><div class="row"><span>Diskon</span><span>${rupiah(transaction.discount)}</span></div><div class="row total"><span>Total</span><span>${rupiah(transaction.final_amount)}</span></div><div class="row"><span>${escapeHtml(paymentLabel)}</span><span>${rupiah(transaction.paid_amount)}</span></div><div class="row"><span>Kembalian</span><span>${rupiah(transaction.change_amount)}</span></div></div>
-      <p class="footer">${escapeHtml(store.receipt_note || 'Terima kasih telah berbelanja')}</p>
+      <p class="footer">${escapeHtml(store.receipt_note || 'Terima kasih telah berbelanja')}</p>${buildQrCodeHtml(transaction.invoice_number)}
     </body></html>`;
   }
 
@@ -340,6 +415,7 @@
       left,
       line,
       `${transaction.invoice_number || ''} | ${receiptDate}`,
+      '',
       line,
       ...itemRows,
       line,
@@ -377,7 +453,8 @@
         printerName: store.printer_name || '',
         host: store.escpos_host || '',
         port: store.escpos_port || 9100,
-        text: buildReceiptText(transaction, store)
+        text: buildReceiptText(transaction, store),
+        qrValue: transaction.invoice_number
       }));
       button.disabled = false;
       if (result) toast('Struk dikirim ke printer');
@@ -385,7 +462,21 @@
   }
 
   document.getElementById('input-discount').addEventListener('input', updateSummary);
-  document.getElementById('input-paid').addEventListener('input', updateSummary);
+  document.getElementById('input-paid').addEventListener('input', (event) => {
+    formatAmountInput(event.currentTarget);
+    updateSummary();
+  });
+  document.getElementById('quick-paid-amounts').addEventListener('click', (event) => {
+    const button = event.target.closest('[data-paid-amount]');
+    if (!button) return;
+    const total = Math.max(0, cart.reduce((sum, item) => sum + item.price * item.quantity, 0) - (Number(document.getElementById('input-discount').value) || 0));
+    const paidInput = document.getElementById('input-paid');
+    const preset = button.getAttribute('data-paid-amount');
+    const amount = preset === 'exact' ? total : parseAmountInput(paidInput.value) + Number(preset);
+    paidInput.value = amount ? amount.toLocaleString('id-ID') : '';
+    updateSummary();
+  });
+  document.getElementById('btn-payment-status').addEventListener('click', openPaymentStatusModal);
 
   document.getElementById('search-product').addEventListener('input', (e) => {
     searchTerm = e.target.value;
@@ -419,9 +510,13 @@
     const discount = Number(document.getElementById('input-discount').value) || 0;
     const subtotal = cart.reduce((a, c) => a + c.price * c.quantity, 0);
     const total = Math.max(0, subtotal - discount);
-    let paid = Number(document.getElementById('input-paid').value) || 0;
-    if (activeMethod !== 'tunai' && paid <= 0) paid = total;
-    if (paid < total) {
+    let paid = parseAmountInput(document.getElementById('input-paid').value);
+    if (paymentStatus === 'lunas' && activeMethod !== 'tunai' && paid <= 0) paid = total;
+    if (paymentStatus === 'belum_bayar' && paid >= total && total > 0) {
+      toast('Untuk status belum bayar, uang dibayar harus kurang dari total', 'error');
+      return;
+    }
+    if (paymentStatus === 'lunas' && paid < total) {
       toast('Uang dibayar kurang dari total belanja', 'error');
       return;
     }
@@ -431,6 +526,7 @@
       payment_method: activeMethod,
       discount,
       paid_amount: paid,
+      customer_name: customerName,
       cashier_name: user.full_name
     };
 
@@ -447,6 +543,9 @@
       cart = [];
       document.getElementById('input-discount').value = 0;
       document.getElementById('input-paid').value = '';
+      paymentStatus = 'lunas';
+      customerName = '';
+      document.getElementById('btn-payment-status').textContent = 'Lunas';
       renderCart();
       loadProducts();
     }

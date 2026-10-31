@@ -8,6 +8,7 @@ function salesReport(db, { from, to } = {}) {
   const totalTransactions = transactions.length;
   const totalSales = transactions.reduce((a, t) => a + t.final_amount, 0);
   const avg = totalTransactions ? totalSales / totalTransactions : 0;
+  const unpaidTransactions = transactions.filter((transaction) => transaction.status === 'belum_bayar');
 
   let dailySql = `SELECT date(transaction_date) AS d, COALESCE(SUM(final_amount),0) AS total
     FROM transactions WHERE status='selesai'`;
@@ -23,7 +24,7 @@ function salesReport(db, { from, to } = {}) {
   dailySql += ` GROUP BY d ORDER BY d`;
   const daily = db.prepare(dailySql).all(...params);
 
-  return { transactions, totalTransactions, totalSales, avgPerTransaction: avg, daily };
+  return { transactions, totalTransactions, totalSales, avgPerTransaction: avg, unpaidTransactions: unpaidTransactions.length, unpaidTotal: unpaidTransactions.reduce((sum, transaction) => sum + transaction.final_amount - transaction.paid_amount, 0), daily };
 }
 
 function stockReport(db) {

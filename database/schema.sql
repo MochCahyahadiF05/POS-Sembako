@@ -51,6 +51,7 @@ CREATE TABLE IF NOT EXISTS transactions (
   invoice_number    TEXT NOT NULL UNIQUE,
   transaction_date  TEXT NOT NULL DEFAULT (datetime('now','localtime')),
   cashier_name      TEXT,
+  customer_name     TEXT,
   payment_method    TEXT NOT NULL DEFAULT 'tunai', -- tunai | transfer | qris
   total_amount      REAL NOT NULL DEFAULT 0,
   discount          REAL NOT NULL DEFAULT 0,
@@ -58,8 +59,19 @@ CREATE TABLE IF NOT EXISTS transactions (
   paid_amount       REAL NOT NULL DEFAULT 0,
   change_amount     REAL NOT NULL DEFAULT 0,
   note              TEXT,
-  status            TEXT NOT NULL DEFAULT 'selesai', -- selesai | batal
+  status            TEXT NOT NULL DEFAULT 'selesai', -- selesai | belum_bayar | batal
   created_at        TEXT NOT NULL DEFAULT (datetime('now','localtime'))
+);
+
+CREATE TABLE IF NOT EXISTS transaction_payments (
+  id              INTEGER PRIMARY KEY AUTOINCREMENT,
+  transaction_id  INTEGER NOT NULL,
+  amount          REAL NOT NULL,
+  payment_method  TEXT NOT NULL DEFAULT 'tunai',
+  payment_date    TEXT NOT NULL DEFAULT (datetime('now','localtime')),
+  cashier_name    TEXT,
+  note            TEXT,
+  FOREIGN KEY (transaction_id) REFERENCES transactions(id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS transaction_items (

@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<title>Piutang - Kasir & Manajemen Usaha</title>
+<link rel="stylesheet" href="../css/app.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <div id="sidebar-container"></div>
+    <main class="main">
+      <div class="main-inner">
+        <div id="header-container"></div>
+        <div class="grid grid-3 mb-4">
+          <div class="card stat-card"><div class="label">Pelanggan Berutang</div><div class="value text-amber" id="receivable-count">0</div></div>
+          <div class="card stat-card"><div class="label">Total Piutang</div><div class="value text-red" id="receivable-total">Rp 0</div></div>
+          <div class="card stat-card"><div class="label">Pembayaran Hari Ini</div><div class="value text-green" id="receivable-paid-today">Rp 0</div></div>
+        </div>
+        <div class="card">
+          <div class="flex justify-between items-center gap-3 flex-wrap mb-3">
+            <div class="section-title">Daftar Piutang</div>
+            <input class="input table-search" id="receivable-search" placeholder="Cari nama pelanggan atau invoice..." autocomplete="off" />
+          </div>
+          <div class="table-wrap">
+            <table class="table">
+              <thead><tr><th>Pelanggan</th><th>Invoice</th><th>Tanggal</th><th>Total</th><th>Terbayar</th><th>Sisa</th><th></th></tr></thead>
+              <tbody id="receivable-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+  <script src="../js/common.js"></script>
+  <script src="../js/receivables.js"></script>
+</body>
+</html>

@@ -72,6 +72,17 @@ function runMigrations() {
   addColumnIfMissing('settings', 'escpos_host', 'TEXT');
   addColumnIfMissing('settings', 'escpos_port', 'INTEGER NOT NULL DEFAULT 9100');
   addColumnIfMissing('transactions', 'note', 'TEXT');
+  addColumnIfMissing('transactions', 'customer_name', 'TEXT');
+  db.exec(`CREATE TABLE IF NOT EXISTS transaction_payments (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    transaction_id INTEGER NOT NULL,
+    amount REAL NOT NULL,
+    payment_method TEXT NOT NULL DEFAULT 'tunai',
+    payment_date TEXT NOT NULL DEFAULT (datetime('now','localtime')),
+    cashier_name TEXT,
+    note TEXT,
+    FOREIGN KEY (transaction_id) REFERENCES transactions(id) ON DELETE CASCADE
+  )`);
 
   // Selaraskan status aktif gas dengan produknya.
   // Dijalankan setiap start (idempoten & murah) agar database yang dibuat

@@ -8,7 +8,7 @@ const gas = require('./gas');
 /**
  * items: [{ product_id, quantity, unit, price, gas_mode? ('tukar'|'tanpa_tukar') }]
  */
-function checkout(db, { items, payment_method, discount = 0, paid_amount = 0, cashier_name = '', note = '' }) {
+function checkout(db, { items, payment_method, discount = 0, paid_amount = 0, customer_name = '', cashier_name = '', note = '' }) {
   if (!items || items.length === 0) throw new Error('Keranjang belanja kosong');
 
   const txn = db.transaction(() => {
@@ -43,19 +43,21 @@ function checkout(db, { items, payment_method, discount = 0, paid_amount = 0, ca
     }
 
     const finalAmount = round2(Math.max(0, totalAmount - Number(discount || 0)));
-    const paid = Number(paid_amount) || finalAmount;
-    const change = round2(paid - finalAmount);
+    const paid = round2(Math.max(0, Number(paid_amount) || 0));
+    const change = round2(Math.max(0, paid - finalAmount));
+    const status = paid >= finalAmount ? 'selesai' : 'belum_bayar';
     const invoiceNumber = generateInvoiceNumber(db);
 
     const txnInfo = db
       .prepare(
         `INSERT INTO transactions
-           (invoice_number, transaction_date, cashier_name, payment_method, total_amount, discount, final_amount, paid_amount, change_amount, note, status, created_at)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'selesai', ?)`
+           (invoice_number, transaction_date, cashier_name, customer_name, payment_method, total_amount, discount, final_amount, paid_amount, change_amount, note, status, created_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
         )
-        .run(invoiceNumber, nowStr(), cashier_name || null, payment_method || 'tunai', totalAmount, Number(discount) || 0, finalAmount, paid, change, note || null, nowStr());
+        .run(invoiceNumber, nowStr(), cashier_name || null, customer_name || null, payment_method || 'tunai', totalAmount, Number(discount) || 0, finalAmount, paid, change, note || null, status, nowStr());
 
     const transactionId = txnInfo.lastInsertRowid;
+    if (paid > 0) db.prepare('INSERT INTO transaction_payments (transaction_id, amount, payment_method, cashier_name) VALUES (?, ?, ?, ?)').run(transactionId, paid, payment_method || 'tunai', cashier_name || null);
 
     const insertItem = db.prepare(`
       INSERT INTO transaction_items (transaction_id, product_id, product_name, category, quantity, unit, price, subtotal)
@@ -94,7 +96,7 @@ function getTransaction(db, id) {
 }
 
 function listTransactions(db, { from, to, limit = 200 } = {}) {
-  let sql = `SELECT * FROM transactions WHERE status = 'selesai'`;
+  let sql = `SELECT * FROM transactions WHERE status IN ('selesai', 'belum_bayar')`;
   const params = [];
   if (from) {
     sql += ` AND date(transaction_date) >= date(?)`;
@@ -107,6 +109,47 @@ function listTransactions(db, { from, to, limit = 200 } = {}) {
   sql += ` ORDER BY transaction_date DESC, id DESC LIMIT ?`;
   params.push(limit);
   return db.prepare(sql).all(...params);
+}
+
+function listReceivables(db, { search = '' } = {}) {
+  let sql = `SELECT t.*, ROUND(t.final_amount - t.paid_amount, 2) AS remaining_amount
+    FROM transactions t WHERE t.status = 'belum_bayar'`;
+  const params = [];
+  if (search) {
+    sql += ` AND (LOWER(COALESCE(t.customer_name, '')) LIKE ? OR LOWER(t.invoice_number) LIKE ?)`;
+    const term = `%${String(search).toLowerCase()}%`;
+    params.push(term, term);
+  }
+  sql += ' ORDER BY t.transaction_date ASC, t.id ASC';
+  const rows = db.prepare(sql).all(...params).map((transaction) => ({
+    ...transaction,
+    payments: db.prepare('SELECT * FROM transaction_payments WHERE transaction_id = ? ORDER BY payment_date ASC, id ASC').all(transaction.id)
+  }));
+  const paidToday = db.prepare("SELECT COALESCE(SUM(amount), 0) AS total FROM transaction_payments WHERE date(payment_date) = date('now', 'localtime')").get().total;
+  return { rows, paidToday };
+}
+
+function listCustomerNames(db) {
+  return db.prepare(`SELECT DISTINCT customer_name FROM transactions
+    WHERE customer_name IS NOT NULL AND trim(customer_name) <> ''
+    ORDER BY customer_name COLLATE NOCASE`).all().map((row) => row.customer_name);
+}
+
+function recordPayment(db, { transaction_id, amount, payment_method = 'tunai', cashier_name = '', customer_name = '', note = '' }) {
+  const transaction = db.prepare('SELECT * FROM transactions WHERE id = ?').get(transaction_id);
+  if (!transaction) throw new Error('Transaksi tidak ditemukan');
+  const remaining = round2(transaction.final_amount - transaction.paid_amount);
+  const payment = round2(Number(amount) || 0);
+  if (payment <= 0) throw new Error('Nominal pembayaran harus lebih besar dari nol');
+  if (payment > remaining) throw new Error(`Pembayaran melebihi sisa piutang ${remaining}`);
+  const txn = db.transaction(() => {
+    const paid = round2(transaction.paid_amount + payment);
+    const status = paid >= transaction.final_amount ? 'selesai' : 'belum_bayar';
+    db.prepare('INSERT INTO transaction_payments (transaction_id, amount, payment_method, cashier_name, note) VALUES (?, ?, ?, ?, ?)').run(transaction_id, payment, payment_method, cashier_name || null, note || null);
+    db.prepare("UPDATE transactions SET paid_amount = ?, status = ?, change_amount = 0, customer_name = COALESCE(NULLIF(?, ''), customer_name) WHERE id = ?").run(paid, status, customer_name || '', transaction_id);
+  });
+  txn();
+  return getTransaction(db, transaction_id);
 }
 
 function voidTransaction(db, id) {
@@ -132,4 +175,4 @@ function voidTransaction(db, id) {
   return getTransaction(db, id);
 }
 
-module.exports = { checkout, getTransaction, listTransactions, voidTransaction };
+module.exports = { checkout, getTransaction, listTransactions, listReceivables, listCustomerNames, recordPayment, voidTransaction };

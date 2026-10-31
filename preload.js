@@ -30,6 +30,9 @@ contextBridge.exposeInMainWorld('api', {
     checkout: (payload) => invoke('transactions:checkout', payload),
     list: (filter) => invoke('transactions:list', filter),
     get: (id) => invoke('transactions:get', id),
+    listReceivables: (filter) => invoke('transactions:listReceivables', filter),
+    listCustomerNames: () => invoke('transactions:listCustomerNames'),
+    recordPayment: (payload) => invoke('transactions:recordPayment', payload),
     void: (id) => invoke('transactions:void', id)
   },
   receipt: {

@@ -146,12 +146,12 @@
         <div class="form-row">
           <div class="form-group" id="wrap-stock">
             <label id="lb-stock">Stok Awal (kg)</label>
-            <input class="input" id="f-stock" type="number" min="0" value="${product ? product.stock : 0}" ${isEdit ? 'disabled' : ''} />
+            <input class="input" id="f-stock" type="number" min="0" step="0.01" value="${product ? product.stock : 0}" ${isEdit ? 'disabled' : ''} />
             ${isEdit ? '<div class="hint">Ubah stok lewat menu Barang Masuk / Barang Keluar.</div>' : ''}
           </div>
           <div class="form-group">
             <label id="lb-minstock">Stok Minimum (kg)</label>
-            <input class="input" id="f-minstock" type="number" min="0" value="${product ? product.minimum_stock : 10}" />
+            <input class="input" id="f-minstock" type="number" min="0" step="0.01" value="${product ? product.minimum_stock : 10}" />
           </div>
         </div>
       </div>

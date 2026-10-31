@@ -13,6 +13,7 @@
     "dist": "electron-builder"
   },
   "dependencies": {
+    "@zxing/browser": "^0.2.1",
     "better-sqlite3": "^11.3.0",
     "chart.js": "^4.4.4",
     "exceljs": "^4.4.0",

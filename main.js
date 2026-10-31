@@ -80,7 +80,7 @@ function handle(channel, fn) {
   });
 }
 
-function printRawToWindowsPrinter(printerName, text) {
+function printRawToWindowsPrinter(printerName, text, qrValue) {
   if (process.platform !== 'win32') {
     throw new Error('Cetak ESC/POS USB melalui Windows hanya tersedia di Windows');
   }
@@ -89,6 +89,7 @@ function printRawToWindowsPrinter(printerName, text) {
   const payload = Buffer.concat([
     Buffer.from([0x1b, 0x40]),
     Buffer.from(text, 'utf8'),
+    qrValue ? buildEscPosQrCode(qrValue) : Buffer.alloc(0),
     Buffer.from('\n\n\n\x1d\x56\x00', 'binary')
   ]).toString('base64');
   const printer = Buffer.from(printerName, 'utf8').toString('base64');
@@ -134,6 +135,21 @@ function printRawToWindowsPrinter(printerName, text) {
   });
 }
 
+function buildEscPosQrCode(value) {
+  const data = Buffer.from(String(value || ''), 'utf8');
+  const storeLength = data.length + 3;
+  return Buffer.concat([
+    Buffer.from([0x1b, 0x61, 0x01]),
+    Buffer.from([0x1d, 0x28, 0x6b, 0x04, 0x00, 0x31, 0x41, 0x32, 0x00]),
+    Buffer.from([0x1d, 0x28, 0x6b, 0x03, 0x00, 0x31, 0x43, 0x06]),
+    Buffer.from([0x1d, 0x28, 0x6b, 0x03, 0x00, 0x31, 0x45, 0x30]),
+    Buffer.from([0x1d, 0x28, 0x6b, storeLength & 0xff, (storeLength >> 8) & 0xff, 0x31, 0x50, 0x30]),
+    data,
+    Buffer.from([0x1d, 0x28, 0x6b, 0x03, 0x00, 0x31, 0x51, 0x30, 0x0a]),
+    Buffer.from(`${value || ''}\n`, 'utf8')
+  ]);
+}
+
 function isLikelyThermalPrinter(printerName) {
   return /pos\s*58|pos58b|thermal|kasir/i.test(String(printerName || ''));
 }
@@ -157,6 +173,9 @@ function registerIpcHandlers() {
   handle('transactions:checkout', (db, payload) => transactions.checkout(db, payload));
   handle('transactions:list', (db, filter) => transactions.listTransactions(db, filter));
   handle('transactions:get', (db, id) => transactions.getTransaction(db, id));
+  handle('transactions:listReceivables', (db, filter) => transactions.listReceivables(db, filter));
+  handle('transactions:listCustomerNames', (db) => transactions.listCustomerNames(db));
+  handle('transactions:recordPayment', (db, payload) => transactions.recordPayment(db, payload));
   handle('transactions:void', (db, id) => transactions.voidTransaction(db, id));
 
   ipcMain.handle('receipt:listPrinters', async () => {
@@ -191,6 +210,7 @@ function registerIpcHandlers() {
       const payload = Buffer.concat([
         Buffer.from([0x1b, 0x40]),
         Buffer.from(options.text, 'utf8'),
+        options.qrValue ? buildEscPosQrCode(options.qrValue) : Buffer.alloc(0),
         Buffer.from('\n\n\n\x1d\x56\x00', 'binary')
       ]);
       await new Promise((resolve, reject) => {
@@ -207,7 +227,7 @@ function registerIpcHandlers() {
     if (useRawUsb) {
       if (!printerName) throw new Error('Printer USB belum dipilih');
       if (!options.text) throw new Error('Data teks struk ESC/POS tidak valid');
-      await printRawToWindowsPrinter(printerName, options.text);
+      await printRawToWindowsPrinter(printerName, options.text, options.qrValue);
       return { ok: true, data: { success: true } };
     }
 

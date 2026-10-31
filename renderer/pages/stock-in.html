@@ -20,7 +20,14 @@
             </div>
             <button class="btn btn-primary" id="btn-add">+ Catat Barang Masuk</button>
           </div>
-          <div class="mb-3"><input class="input table-search" id="table-search" placeholder="Cari produk, supplier, atau catatan..." /></div>
+          <div class="flex items-center gap-3 flex-wrap mb-3">
+            <div class="btn-pill-group" id="period-filter">
+              <button class="btn-pill active" data-period="today">Hari Ini</button>
+              <button class="btn-pill" data-period="month">Bulan Ini</button>
+              <button class="btn-pill" data-period="year">Tahun Ini</button>
+            </div>
+            <input class="input table-search" id="table-search" placeholder="Cari produk, supplier, atau catatan..." />
+          </div>
 
           <div class="table-wrap">
             <table class="table">

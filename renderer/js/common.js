@@ -67,6 +67,7 @@ const NAV_ITEMS = [
   { key: 'stock-out', label: 'Barang Keluar', icon: 'arrowUpCircle', href: 'stock-out.html' },
   { key: 'gas', label: 'Manajemen Gas', icon: 'flame', href: 'gas.html' },
   { key: 'finance', label: 'Keuangan', icon: 'wallet', href: 'finance.html' },
+  { key: 'receivables', label: 'Piutang', icon: 'wallet', href: 'receivables.html' },
   { key: 'reports', label: 'Laporan', icon: 'barChart', href: 'reports.html' },
   { key: 'settings', label: 'Pengaturan', icon: 'settings', href: 'settings.html' }
 ];
@@ -163,9 +164,13 @@ function rupiah(n) {
   return 'Rp ' + Math.round(n).toLocaleString('id-ID');
 }
 
-function numFmt(n, decimals = 0) {
+function numFmt(n, decimals = null) {
   n = Number(n) || 0;
-  return n.toLocaleString('id-ID', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+  const fractionDigits = decimals == null ? 2 : decimals;
+  return n.toLocaleString('id-ID', {
+    minimumFractionDigits: decimals == null ? 0 : decimals,
+    maximumFractionDigits: fractionDigits
+  });
 }
 
 function fmtDate(dateStr) {

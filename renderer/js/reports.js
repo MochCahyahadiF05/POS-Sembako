@@ -44,10 +44,11 @@
     const data = await callApi(window.api.reports.sales(range));
     if (!data) return;
     content.innerHTML = `
-      <div class="grid grid-3 mb-4">
+      <div class="grid grid-4 mb-4">
         <div class="card stat-card"><div class="label">Total Transaksi</div><div class="value" id="s-count">0</div><div class="foot">Periode ini</div></div>
         <div class="card stat-card"><div class="label">Total Penjualan</div><div class="value text-green" id="s-total">Rp 0</div><div class="foot">Semua produk</div></div>
         <div class="card stat-card"><div class="label">Rata-rata / Transaksi</div><div class="value" id="s-avg">Rp 0</div><div class="foot">Per transaksi</div></div>
+        <div class="card stat-card"><div class="label">Belum Dibayar</div><div class="value text-amber" id="s-unpaid">0</div><div class="foot" id="s-unpaid-total">Rp 0</div></div>
       </div>
       <div class="card mb-4">
         <div class="section-title mb-2">Grafik Penjualan Harian</div>
@@ -55,7 +56,10 @@
       </div>
       <div class="card">
         <div class="section-title mb-3">Daftar Transaksi</div>
-        <div class="mb-3"><input class="input table-search" id="report-search" placeholder="Cari invoice, kasir, metode, atau status..." /></div>
+        <div class="flex gap-2 mb-3">
+          <input class="input table-search" id="report-search" placeholder="Scan barcode atau cari invoice, kasir, metode, status..." autocomplete="off" />
+          <button class="btn btn-secondary" id="btn-camera-scan" type="button">Scan Kamera</button>
+        </div>
         <div class="table-wrap">
           <table class="table">
             <thead><tr><th>No. Invoice</th><th>Tanggal</th><th>Kasir</th><th>Metode</th><th>Total</th><th>Status</th><th></th></tr></thead>
@@ -68,6 +72,8 @@
     document.getElementById('s-count').textContent = numFmt(data.totalTransactions);
     document.getElementById('s-total').textContent = rupiah(data.totalSales);
     document.getElementById('s-avg').textContent = rupiah(data.avgPerTransaction);
+    document.getElementById('s-unpaid').textContent = numFmt(data.unpaidTransactions || 0);
+    document.getElementById('s-unpaid-total').textContent = `Piutang ${rupiah(data.unpaidTotal || 0)}`;
 
     const tbody = document.getElementById('s-body');
     let salesSearch = '';
@@ -88,7 +94,7 @@
             <td class="text-sm">${t.cashier_name || '-'}</td>
             <td><span class="badge badge-gray">${t.payment_method}</span></td>
             <td class="font-semibold text-green">${rupiah(t.final_amount)}</td>
-            <td>${t.status === 'batal' ? '<span class="badge badge-red">Batal</span>' : '<span class="badge badge-green">Selesai</span>'}</td>
+            <td>${t.status === 'batal' ? '<span class="badge badge-red">Batal</span>' : t.status === 'belum_bayar' ? '<span class="badge badge-amber">Belum Bayar</span>' : '<span class="badge badge-green">Selesai</span>'}</td>
             <td><button class="btn btn-secondary btn-sm" data-transaction-detail="${t.id}">Detail</button></td>
           </tr>`
         )
@@ -100,6 +106,13 @@
       renderReportPagination('sales-pagination', reportPages.sales || 1, filtered.length, (next) => { reportPages.sales = next; renderSales(); });
     };
     document.getElementById('report-search').addEventListener('input', (e) => { salesSearch = e.target.value.trim().toLowerCase(); reportPages.sales = 1; renderSales(); });
+    document.getElementById('report-search').focus();
+    document.getElementById('btn-camera-scan').addEventListener('click', () => openCameraScanner((value) => {
+      const searchInput = document.getElementById('report-search');
+      searchInput.value = value;
+      searchInput.dispatchEvent(new Event('input', { bubbles: true }));
+      searchInput.focus();
+    }));
     renderSales();
 
     chartInstance = new Chart(document.getElementById('s-chart'), {
@@ -123,6 +136,114 @@
     };
   }
 
+  function openCameraScanner(onScan) {
+    if (!window.ZXingBrowser || !window.ZXingBrowser.BrowserMultiFormatReader) {
+      toast('Modul scanner kamera belum tersedia', 'error');
+      return;
+    }
+    const overlay = openModal(`
+      <div class="modal-header"><h3>Scan Barcode Invoice</h3><button class="modal-close" id="camera-scan-close">&times;</button></div>
+      <div class="modal-body camera-scanner-body">
+        <video id="camera-scan-video" class="camera-scan-video" autoplay muted playsinline></video>
+        <p class="text-sm text-muted mt-2">Arahkan barcode struk ke kamera.</p>
+      </div>
+      <div class="modal-footer"><button class="btn btn-secondary" id="camera-scan-cancel">Tutup</button></div>
+    `, { size: 'modal-lg' });
+
+    const reader = new window.ZXingBrowser.BrowserMultiFormatReader();
+    let controls = null;
+    let finished = false;
+    const video = overlay.querySelector('#camera-scan-video');
+    const stop = () => {
+      try {
+        if (controls && typeof controls.stop === 'function') controls.stop();
+      } catch (error) {
+        console.warn('Gagal menghentikan scanner:', error);
+      }
+      try {
+        reader.reset();
+      } catch (error) {
+        console.warn('Gagal mereset scanner:', error);
+      }
+      if (video && video.srcObject) {
+        try {
+          video.srcObject.getTracks().forEach((track) => track.stop());
+        } catch (error) {
+          console.warn('Gagal menghentikan kamera:', error);
+        } finally {
+          video.srcObject = null;
+        }
+      }
+    };
+    const close = () => {
+      stop();
+      closeModal();
+    };
+    overlay.querySelector('#camera-scan-close').addEventListener('click', close);
+    overlay.querySelector('#camera-scan-cancel').addEventListener('click', close);
+
+    reader.decodeFromVideoDevice(undefined, video, (result, error, scanControls) => {
+      controls = scanControls || controls;
+      if (finished || !result) return;
+      finished = true;
+      const value = result.getText().replace(/^\*|\*$/g, '');
+      close();
+      onScan(value);
+      toast(`Barcode ${value} terbaca`);
+    }).catch((error) => {
+      if (!finished) {
+        close();
+        toast(`Kamera tidak dapat digunakan: ${error.message || error}`, 'error');
+      }
+    });
+  }
+
+  async function printTransactionReceipt(transaction) {
+    const store = (await callApi(window.api.settings.get(), { silent: true })) || {};
+    const esc = (value) => String(value == null ? '' : value)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+    const paymentLabel = { tunai: 'Tunai', transfer: 'Transfer', qris: 'QRIS' }[transaction.payment_method] || transaction.payment_method;
+    const items = transaction.items.map((item) => `<div class="item"><span>${esc(item.product_name)}<br><small>${item.quantity} ${esc(item.unit)} x ${rupiah(item.price)}</small></span><strong>${rupiah(item.subtotal)}</strong></div>`).join('');
+    let qr = '';
+    if (window.ZXingBrowser && window.ZXingBrowser.BrowserQRCodeSvgWriter) {
+      qr = new window.ZXingBrowser.BrowserQRCodeSvgWriter().write(transaction.invoice_number, 90, 90).outerHTML;
+    }
+    const receiptHtml = `<!doctype html><html><head><meta charset="UTF-8"><style>
+      @page { size: 58mm auto; margin: 0; } * { box-sizing: border-box; } body { width: 50mm; margin: 0 auto; padding: 4mm 0; font: 10px Arial; color: #111; }
+      h1, p { text-align: center; margin: 2px 0; } h1 { font-size: 16px; } .line { border-top: 1px dashed #555; margin: 7px 0; }
+      .item, .row { display: flex; justify-content: space-between; gap: 8px; margin: 4px 0; } small { color: #555; } strong { white-space: nowrap; } .total { font-size: 13px; font-weight: bold; }
+      .qr { text-align: center; margin-top: 7px; } .qr svg { width: 20mm; height: 20mm; } .footer { margin-top: 8px; white-space: pre-line; }
+    </style></head><body><h1>${esc(store.store_name || 'Toko')}</h1><p>${esc(store.address || '')}</p><p>${esc(store.phone || '')}</p>
+      <div class="line"></div><p>${esc(transaction.invoice_number)}</p><p>${esc(fmtDateTime(transaction.transaction_date))}</p><div class="line"></div>${items}
+      <div class="line"><div class="row"><span>Subtotal</span><span>${rupiah(transaction.total_amount)}</span></div><div class="row"><span>Diskon</span><span>${rupiah(transaction.discount)}</span></div><div class="row total"><span>Total</span><span>${rupiah(transaction.final_amount)}</span></div><div class="row"><span>${esc(paymentLabel)}</span><span>${rupiah(transaction.paid_amount)}</span></div><div class="row"><span>Kembalian</span><span>${rupiah(transaction.change_amount)}</span></div></div>
+      <p class="footer">${esc(store.receipt_note || 'Terima kasih telah berbelanja')}</p><div class="qr">${qr}<div>${esc(transaction.invoice_number)}</div></div></body></html>`;
+    const width = 32;
+    const row = (label, value) => `${label}${' '.repeat(Math.max(1, width - label.length - String(value).length))}${value}`;
+    const text = [
+      `${store.store_name || 'Toko'}`,
+      `${transaction.invoice_number} | ${fmtDateTime(transaction.transaction_date).replace(', ', ' ')}`,
+      '-'.repeat(width),
+      ...transaction.items.flatMap((item) => [`${item.product_name}`, row(`${item.quantity} ${item.unit} x`, rupiah(item.subtotal))]),
+      '-'.repeat(width),
+      row('Subtotal', rupiah(transaction.total_amount)), row('Diskon', rupiah(transaction.discount)), row('TOTAL', rupiah(transaction.final_amount)),
+      row(paymentLabel, rupiah(transaction.paid_amount)), row('Kembalian', rupiah(transaction.change_amount)),
+      '-'.repeat(width), store.receipt_note || 'Terima kasih telah berbelanja', '', ''
+    ].join('\n');
+    const result = await callApi(window.api.receipt.print(receiptHtml, {
+      mode: store.printer_mode || 'windows',
+      printerName: store.printer_name || '',
+      host: store.escpos_host || '',
+      port: store.escpos_port || 9100,
+      text,
+      qrValue: transaction.invoice_number
+    }));
+    if (result) toast('Struk dikirim ke printer');
+  }
+
   async function showTransactionDetail(id) {
     const transaction = await callApi(window.api.transactions.get(id));
     if (!transaction) return;
@@ -140,7 +261,7 @@
           <div><span class="detail-label">Kasir</span><strong>${transaction.cashier_name || '-'}</strong></div>
           <div><span class="detail-label">Catatan</span><strong>${transaction.note || '-'}</strong></div>
           <div><span class="detail-label">Metode Pembayaran</span><strong>${paymentLabel}</strong></div>
-          <div><span class="detail-label">Status</span><strong class="${transaction.status === 'batal' ? 'text-red' : 'text-green'}">${transaction.status === 'batal' ? 'Batal' : 'Selesai'}</strong></div>
+          <div><span class="detail-label">Status</span><strong class="${transaction.status === 'batal' ? 'text-red' : transaction.status === 'belum_bayar' ? 'text-amber' : 'text-green'}">${transaction.status === 'batal' ? 'Batal' : transaction.status === 'belum_bayar' ? 'Belum Bayar' : 'Selesai'}</strong></div>
         </div>
         <div class="section-title mt-4 mb-2">Barang yang Dibeli</div>
         <div class="table-wrap">
@@ -157,10 +278,19 @@
           <div><span>Kembalian</span><span>${rupiah(transaction.change_amount)}</span></div>
         </div>
       </div>
-      <div class="modal-footer"><button class="btn btn-secondary" id="transaction-detail-close-footer">Tutup</button></div>
+      <div class="modal-footer"><button class="btn btn-secondary" id="transaction-detail-close-footer">Tutup</button><button class="btn btn-primary" id="transaction-detail-print">Cetak Struk</button></div>
     `, { size: 'modal-lg' });
     overlay.querySelector('#transaction-detail-close').addEventListener('click', closeModal);
     overlay.querySelector('#transaction-detail-close-footer').addEventListener('click', closeModal);
+    overlay.querySelector('#transaction-detail-print').addEventListener('click', async (event) => {
+      const button = event.currentTarget;
+      button.disabled = true;
+      try {
+        await printTransactionReceipt(transaction);
+      } finally {
+        button.disabled = false;
+      }
+    });
   }
 
   /* ---------------- LAPORAN STOK ---------------- */
