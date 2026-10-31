@@ -92,7 +92,7 @@
             <td class="font-semibold">${t.invoice_number}</td>
             <td class="text-sm">${fmtDateTime(t.transaction_date)}</td>
             <td class="text-sm">${t.cashier_name || '-'}</td>
-            <td><span class="badge badge-gray">${t.payment_method}</span></td>
+            <td>${paymentBadge(t.payment_method)}</td>
             <td class="font-semibold text-green">${rupiah(t.final_amount)}</td>
             <td>${t.status === 'batal' ? '<span class="badge badge-red">Batal</span>' : t.status === 'belum_bayar' ? '<span class="badge badge-amber">Belum Bayar</span>' : '<span class="badge badge-green">Selesai</span>'}</td>
             <td><button class="btn btn-secondary btn-sm" data-transaction-detail="${t.id}">Detail</button></td>
@@ -260,7 +260,7 @@
           <div><span class="detail-label">Tanggal</span><strong>${fmtDateTime(transaction.transaction_date)}</strong></div>
           <div><span class="detail-label">Kasir</span><strong>${transaction.cashier_name || '-'}</strong></div>
           <div><span class="detail-label">Catatan</span><strong>${transaction.note || '-'}</strong></div>
-          <div><span class="detail-label">Metode Pembayaran</span><strong>${paymentLabel}</strong></div>
+          <div><span class="detail-label">Metode Pembayaran</span>${paymentBadge(transaction.payment_method)}</div>
           <div><span class="detail-label">Status</span><strong class="${transaction.status === 'batal' ? 'text-red' : transaction.status === 'belum_bayar' ? 'text-amber' : 'text-green'}">${transaction.status === 'batal' ? 'Batal' : transaction.status === 'belum_bayar' ? 'Belum Bayar' : 'Selesai'}</strong></div>
         </div>
         <div class="section-title mt-4 mb-2">Barang yang Dibeli</div>

@@ -115,7 +115,7 @@
             <td><span class="badge ${isSale ? 'badge-green' : 'badge-blue'}">${isSale ? 'Penjualan' : 'Lainnya'}</span></td>
             <td class="text-sm font-semibold">${r.reference || '-'}</td>
             <td class="text-sm text-muted">${r.description || '-'}</td>
-            <td class="text-sm">${r.payment_method ? `<span class="badge badge-gray">${r.payment_method}</span>` : '-'}</td>
+            <td class="text-sm">${r.payment_method ? paymentBadge(r.payment_method) : '-'}</td>
             <td class="font-semibold text-green">${rupiah(r.amount)}</td>
             <td class="text-right">${isSale ? '' : `<button class="btn btn-danger btn-sm" data-del-income="${r.ref_id}">Hapus</button>`}</td>
           </tr>`;

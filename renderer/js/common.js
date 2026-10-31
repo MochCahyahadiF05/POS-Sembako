@@ -273,6 +273,14 @@ function stockBadge(status) {
   return `<span class="badge badge-green"><span class="dot-status" style="background:#16a34a"></span> Stok Aman</span>`;
 }
 
+function paymentBadge(method) {
+  const key = String(method || '').toLowerCase();
+  const labels = { tunai: 'Tunai', transfer: 'Transfer', qris: 'QRIS' };
+  const classes = { tunai: 'badge-payment-cash', transfer: 'badge-payment-transfer', qris: 'badge-payment-qris' };
+  const label = labels[key] || method || '-';
+  return `<span class="badge ${classes[key] || 'badge-gray'}">${label}</span>`;
+}
+
 function categoryLabel(cat) {
   return { beras: 'Beras', telur: 'Telur', gas: 'Gas' }[cat] || cat;
 }

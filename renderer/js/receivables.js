@@ -52,7 +52,7 @@
   function openPaymentModal(row) {
     if (!row) return;
     const remaining = Number(row.remaining_amount || 0);
-    const history = row.payments.map((payment) => `<tr><td>${fmtDateTime(payment.payment_date)}</td><td>${rupiah(payment.amount)}</td><td>${escapeHtml(payment.payment_method)}</td></tr>`).join('') || '<tr><td colspan="3" class="text-muted">Belum ada riwayat cicilan</td></tr>';
+    const history = row.payments.map((payment) => `<tr><td>${fmtDateTime(payment.payment_date)}</td><td>${rupiah(payment.amount)}</td><td>${paymentBadge(payment.payment_method)}</td></tr>`).join('') || '<tr><td colspan="3" class="text-muted">Belum ada riwayat cicilan</td></tr>';
     const overlay = openModal(`
       <div class="modal-header"><div><h3>Bayar Piutang</h3><div class="text-xs text-muted mt-1">${escapeHtml(row.customer_name || 'Tanpa Nama')} - ${escapeHtml(row.invoice_number)}</div></div><button class="modal-close" id="payment-close">&times;</button></div>
       <div class="modal-body">
